@@ -1,0 +1,248 @@
+C51 COMPILER V9.01   I2C                                                                   07/20/2018 20:28:38 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE I2C
+OBJECT MODULE PLACED IN i2c.obj
+COMPILER INVOKED BY: B:\Keil C51\C51\BIN\C51.EXE src\i2c.c BROWSE DEBUG OBJECTEXTEND PRINT(.\i2c.lst) OBJECT(i2c.obj)
+
+line level    source
+
+   1          
+   2          #include "reg52.h"
+   3          #include "intrins.h"
+   4          #include "type_define.h"
+   5          // #include "i2c.h"
+   6          
+   7          bit ack;
+   8          sbit SCL = P1^2;
+   9          sbit SDA = P1^1;
+  10          sbit WP  = P1^0;
+  11          
+  12          uchar send_data[9] = {0x08,0x01,0x02,0x03,0x04,0x05,0x07,0x09,0xaa};
+  13          uchar receive_data[9] = {0};
+  14          
+  15          uchar sla = 0xa0; // 器件地址
+  16          uchar suba = 0x00; //子器件地址
+  17          uchar numbyte = 9; // read or wright nums
+  18          
+  19          void start_I2C(void);
+  20          void stop_I2C(void);
+  21          void slave_0();
+  22          void slave_1();
+  23          void check_ACK();
+  24          void write_Byte(uchar);
+  25          void delay(uint16);
+  26          
+  27          uchar read_Byte(void);
+  28          bit write_Bytes(uchar , uchar , uchar *, uchar );
+  29          bit read_Bytes(uchar ,uchar , uchar *, uchar );
+  30          
+  31          void start_I2C()
+  32          {
+  33   1          SDA = 1;
+  34   1          _nop_();
+  35   1          SCL = 1;
+  36   1          _nop_();
+  37   1          _nop_();
+  38   1          _nop_();
+  39   1          _nop_();
+  40   1          _nop_();
+  41   1          SDA = 0;
+  42   1          _nop_();
+  43   1          _nop_();
+  44   1          _nop_();
+  45   1          _nop_();
+  46   1          _nop_();
+  47   1          SCL = 0;
+  48   1          _nop_();
+  49   1          _nop_();
+  50   1      }
+  51          
+  52          void stop_I2C()
+  53          {
+  54   1          SDA = 0;
+  55   1          _nop_();
+C51 COMPILER V9.01   I2C                                                                   07/20/2018 20:28:38 PAGE 2   
+
+  56   1          _nop_();
+  57   1          _nop_();
+  58   1          SCL = 1;
+  59   1          _nop_();
+  60   1          _nop_();
+  61   1          _nop_();
+  62   1          _nop_();
+  63   1          _nop_();
+  64   1          SDA = 1;
+  65   1          _nop_();
+  66   1          _nop_();
+  67   1          _nop_();
+  68   1          _nop_();
+  69   1      }
+  70          
+  71          void slave_0()
+  72          {
+  73   1          SDA = 0;
+  74   1          _nop_();
+  75   1          _nop_();
+  76   1          _nop_();
+  77   1          SCL = 1;
+  78   1          _nop_();
+  79   1          _nop_();
+  80   1          _nop_();
+  81   1          _nop_();
+  82   1          _nop_();
+  83   1          SCL = 0;
+  84   1          _nop_();
+  85   1          _nop_();
+  86   1          _nop_();
+  87   1          SDA = 1;// why should SDA been 1? cause when a slave answer ,always a 0 or  nothing.
+  88   1          _nop_();
+  89   1      }
+  90          void slave_1()
+  91          {
+  92   1          SDA = 1;
+  93   1          _nop_();
+  94   1          _nop_();
+  95   1          _nop_();
+  96   1          SCL = 1;
+  97   1          _nop_();
+  98   1          _nop_();
+  99   1          _nop_();
+ 100   1          _nop_();
+ 101   1          _nop_();
+ 102   1          SCL = 0;
+ 103   1          _nop_();
+ 104   1          _nop_();
+ 105   1          _nop_();
+ 106   1      }
+ 107          
+ 108          void check_ACK()
+ 109          {
+ 110   1          SDA = 1;
+ 111   1          _nop_();
+ 112   1          _nop_();
+ 113   1          _nop_();
+ 114   1          SCL = 1;
+ 115   1          ack = 0;
+ 116   1          _nop_();
+ 117   1          _nop_();
+C51 COMPILER V9.01   I2C                                                                   07/20/2018 20:28:38 PAGE 3   
+
+ 118   1          if(SDA == 0) ack = 1;
+ 119   1          SCL = 0; //? why should do this?
+ 120   1      }
+ 121          
+ 122          void write_Byte(uchar j)
+ 123          {
+ 124   1          uchar bit_cnt;
+ 125   1          for(bit_cnt=0;bit_cnt<=7;bit_cnt++)
+ 126   1          {
+ 127   2              if((j << bit_cnt)&0x80) SDA = 1;
+ 128   2              else SDA = 0;
+ 129   2              _nop_();
+ 130   2              SCL = 1;
+ 131   2              _nop_();_nop_();_nop_();_nop_();_nop_();
+ 132   2              SCL = 0;
+ 133   2              _nop_();_nop_();_nop_();_nop_();_nop_();
+ 134   2          }
+ 135   1      }
+ 136          
+ 137          uchar read_Byte()
+ 138          {
+ 139   1          uchar retc;
+ 140   1          uchar bit_cnt;
+ 141   1          retc = 0;
+ 142   1          SDA = 1;
+ 143   1          for(bit_cnt=0;bit_cnt<=7;bit_cnt++)
+ 144   1          {
+ 145   2              _nop_();
+ 146   2              SCL = 1;
+ 147   2              _nop_();_nop_();_nop_();_nop_();_nop_();
+ 148   2              retc = retc << 1;
+ 149   2              if(SDA == 1) retc += 1;
+ 150   2              _nop_();_nop_();_nop_();
+ 151   2              SCL = 0;
+ 152   2              _nop_();
+ 153   2              _nop_();
+ 154   2              _nop_();
+ 155   2          }
+ 156   1          return retc;
+ 157   1      }
+ 158          
+ 159          bit write_Bytes(uchar sla, uchar suba, uchar *s, uchar nums_of_bytes_to_be_writed)
+ 160          {
+ 161   1          uchar i;
+ 162   1          start_I2C();
+ 163   1          write_Byte(sla);// send device code
+ 164   1          check_ACK();
+ 165   1          if(!ack) return(0);
+ 166   1          write_Byte(suba); //器件单元地址
+ 167   1          check_ACK();
+ 168   1          if(!ack) return(0);
+ 169   1          for(i = 0 ; i< nums_of_bytes_to_be_writed;i++)
+ 170   1          {
+ 171   2              write_Byte(*s);
+ 172   2              check_ACK();
+ 173   2              if(!ack) return(0);
+ 174   2              s++;
+ 175   2          }
+ 176   1          stop_I2C();
+ 177   1          _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+ 178   1          return(1);
+ 179   1      }
+C51 COMPILER V9.01   I2C                                                                   07/20/2018 20:28:38 PAGE 4   
+
+ 180          
+ 181          bit read_Bytes(uchar sla,uchar suba, uchar *s, uchar nums_of_bytes_to_be_writed)
+ 182          {
+ 183   1          uchar i;
+ 184   1          start_I2C();
+ 185   1          write_Byte(sla);
+ 186   1          check_ACK();
+ 187   1          if(!ack) return(0);
+ 188   1          write_Byte(suba);
+ 189   1          if(!ack) return(0);
+ 190   1          start_I2C();
+ 191   1          write_Byte(0xa1);// why plus 1?  表示读模式
+ 192   1          check_ACK();
+ 193   1          if(!ack) return(0);
+ 194   1          for(i = 0; i< nums_of_bytes_to_be_writed-1;i++)
+ 195   1          {
+ 196   2              *s = read_Byte();
+ 197   2              slave_0();
+ 198   2              s++;
+ 199   2          }
+ 200   1          *s = read_Byte();
+ 201   1          slave_1();
+ 202   1          stop_I2C();
+ 203   1          return(1);
+ 204   1      }
+ 205          
+ 206          void delay(uint16 j)
+ 207          {
+ 208   1          while(j--);
+ 209   1      }
+ 210          
+ 211          void main()
+ 212          {
+ 213   1          WP = 0;
+ 214   1          delay(300);
+ 215   1          write_Bytes(sla,suba,send_data,numbyte);
+ 216   1          delay(1000);
+ 217   1          // read_Bytes(sla,suba,receive_data,numbyte);
+ 218   1          while(1);
+ 219   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    372    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     21      12
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
