@@ -186,7 +186,10 @@ bit read_Bytes(uchar sla,uchar suba, uchar *s, uchar nums_of_bytes_to_be_writed)
     check_ACK();
     if(!ack) return(0);
     write_Byte(suba);
-    if(!ack) return(0);
+    if(!ack) {
+        return 0;
+    }
+    delay(10000);
     start_I2C();
     write_Byte(0xa1);// why plus 1?  表示读模式
     check_ACK();
@@ -210,6 +213,7 @@ void delay(uint16 j)
 
 void main()
 {
+    P2 = 0;
     WP = 0;
     delay(300);
     write_Bytes(sla,suba,send_data,numbyte);
